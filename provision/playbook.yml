@@ -1,0 +1,72 @@
+---
+
+- hosts: all
+
+  tasks:
+
+  - name: Add IUS repository to get python python 3.6
+    yum:
+      name: https://centos7.iuscommunity.org/ius-release.rpm
+    sudo: yes
+
+  - name: Install Python 3.6
+    yum: name={{item}}
+    with_items:
+      - python36u
+      - python36u-libs
+      - python36u-devel
+      - python36u-pip
+    sudo: yes
+
+  - name: Disable selinux
+    selinux:
+      state: disabled
+    sudo: yes
+
+  - name: Install PostgresQL
+    yum: name={{item}}
+    with_items:
+      - postgresql-server
+      - postgresql-contrib
+      - postgresql-libs
+      - postgresql-devel
+    sudo: yes
+
+  - name: Initiate database
+    sudo: yes
+    command: service postgresql initdb
+            creates=/var/lib/pgsql/data/postgresql.conf
+
+  - name: Start PostgreSQL and enable at boot
+    sudo: yes
+    service: name=postgresql
+            enabled=yes
+            state=started
+
+  - lineinfile: dest=/var/lib/pgsql/data/pg_hba.conf
+               regexp='host\s+all\s+all\s+127.0.0.1/32\s+md5'
+               line='host all all 127.0.0.1/32 md5'
+               insertbefore=BOF
+    notify: restart postgresql
+    sudo: yes
+
+  - name: Create PostgreSQL User
+    shell: psql -c "ALTER USER postgres PASSWORD 'password';"
+    sudo: yes
+    sudo_user: postgres
+
+  - name: Create PostgreSQL Database
+    shell: createdb mydb
+    failed_when: False
+    sudo: yes
+    sudo_user: postgres
+
+  handlers:
+
+  - name: restart postgresql
+    sudo: yes
+    service: name=postgresql state=restarted
+
+  - name: restart httpd
+    sudo: yes
+    service: name=httpd state=restarted
