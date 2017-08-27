@@ -131,6 +131,12 @@
     sudo: yes
     notify: restart httpd
 
+  - name: Django Collectstatic
+    command: python3.6 manage.py collectstatic --noinput
+    args:
+      chdir: '{{server}}'
+    sudo: yes
+
   handlers:
 
   - name: restart postgresql
