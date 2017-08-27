@@ -11,6 +11,7 @@
     yum:
       name: https://centos7.iuscommunity.org/ius-release.rpm
     sudo: yes
+    ignore_errors: yes
 
   ##
   # Install Python
@@ -73,11 +74,23 @@
             state=started
 
   - lineinfile: dest=/var/lib/pgsql/data/pg_hba.conf
-               regexp='host\s+all\s+all\s+127.0.0.1/32\s+md5'
+               regexp='host\s+all\s+all\s+127.0.0.1/32\s+ident'
                line='host all all 127.0.0.1/32 md5'
                insertbefore=BOF
     notify: restart postgresql
     sudo: yes
+
+  - lineinfile: dest=/var/lib/pgsql/data/pg_hba.conf
+               regexp='host\s+all\s+all\s+::1/128\s+ident'
+               line='host all all ::1/128 md5'
+               insertbefore=BOF
+    notify: restart postgresql
+    sudo: yes
+
+  - name: PostgreSQL enable at boot
+    sudo: yes
+    service: name=postgresql
+            enabled=yes
 
   - name: Create PostgreSQL User
     shell: psql -c "ALTER USER postgres PASSWORD 'password';"
