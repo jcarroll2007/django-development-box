@@ -2,7 +2,7 @@
 # vi: set ft=ruby :
 
 Vagrant.configure("2") do |config|
-  config.vm.box = "django-dev-box"
+  config.vm.box = "bento/centos-7.3"
   config.vm.synced_folder ".", "/vagrant", type: "virtualbox"
   config.vm.network "forwarded_port", guest: 80, host: 8080, host_ip: "127.0.0.1"
 
