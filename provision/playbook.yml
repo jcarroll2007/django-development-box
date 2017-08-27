@@ -2,6 +2,9 @@
 
 - hosts: all
 
+  vars:
+    server: /vagrant/backend
+
   tasks:
 
   - name: Add IUS repository to get python python 3.6
@@ -9,6 +12,9 @@
       name: https://centos7.iuscommunity.org/ius-release.rpm
     sudo: yes
 
+  ##
+  # Install Python
+  ##
   - name: Install Python 3.6
     yum: name={{item}}
     with_items:
@@ -18,11 +24,34 @@
       - python36u-pip
     sudo: yes
 
+  ##
+  # Disable Selinux
+  ##
   - name: Disable selinux
     selinux:
       state: disabled
     sudo: yes
 
+  ##
+  # Install Apache
+  ##
+  - name: Install Apache
+    yum: name={{item}}
+    with_items:
+      - httpd
+      - httpd-devel
+    sudo: yes
+
+  - name: Start and enable Apache
+    systemd:
+      name: httpd
+      state: started
+      enabled: yes
+    sudo: yes
+
+  ##
+  # Install and set up postgresql
+  ##
   - name: Install PostgresQL
     yum: name={{item}}
     with_items:
@@ -60,6 +89,47 @@
     failed_when: False
     sudo: yes
     sudo_user: postgres
+
+  ##
+  # Install mod_wsgi
+  ##
+  - name: Install gcc
+    yum: name=gcc
+    sudo: yes
+
+  - name: Install mod wsgi
+    unarchive:
+      src: https://github.com/GrahamDumpleton/mod_wsgi/archive/4.5.17.tar.gz
+      dest: /tmp
+      remote_src: True
+
+  - name: Configure mod_wsgi
+    shell: ./configure --with-python=/usr/bin/python3.6
+    args:
+      chdir: /tmp/mod_wsgi-4.5.17/
+
+  - name: Make mod_wsgi
+    make:
+      chdir: /tmp/mod_wsgi-4.5.17/
+      target: install
+    sudo: yes
+
+  ##
+  # Pip Install
+  ##
+  - name: Pip Install
+    pip:
+      requirements: "{{server}}/requirements.txt"
+      executable: pip3.6
+    sudo: yes
+
+  ##
+  # Copy apache conf
+  ##
+  - name: Copy Apache config
+    copy: src=django.conf dest=/etc/httpd/conf.d/django.conf
+    sudo: yes
+    notify: restart httpd
 
   handlers:
 
